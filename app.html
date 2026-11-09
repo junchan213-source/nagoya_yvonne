@@ -1,0 +1,1678 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>名古屋自由行小幫手 | Nagoya Travel App</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Google Fonts: Inter & Noto Sans TC -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'Noto Sans TC', 'sans-serif'],
+                    },
+                    colors: {
+                        nagoya: {
+                            gold: '#D97706',
+                            amber: '#F59E0B',
+                            indigo: '#1E293B',
+                            red: '#DC2626',
+                            matcha: '#059669',
+                            cream: '#FFFBEB'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+            background-color: #0F172A;
+            color: #1E293B;
+            -webkit-tap-highlight-color: transparent;
+        }
+        /* Hide scrollbars for horizontal pill lists */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        /* Smooth transitions */
+        .tab-transition {
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        /* Shachihoko golden pattern gradient */
+        .nagoya-gradient {
+            background: linear-gradient(135deg, #1E293B 0%, #0F172A 60%, #33240F 100%);
+        }
+        .gold-badge {
+            background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex justify-center bg-slate-900">
+
+    <!-- App Container (Mobile-first look on Desktop, Full screen on Mobile) -->
+    <div class="w-full max-w-md md:max-w-4xl bg-slate-50 min-h-screen flex flex-col relative shadow-2xl overflow-hidden md:my-4 md:rounded-3xl border border-slate-700/40">
+
+        <!-- Top Hero & Live Weather Banner -->
+        <header class="nagoya-gradient text-white pt-5 pb-6 px-5 rounded-b-3xl shadow-lg relative overflow-hidden">
+            <!-- Decorative Nagoya Castle Shachihoko / Circle Accent -->
+            <div class="absolute -right-8 -top-8 w-36 h-36 rounded-full bg-amber-500/10 blur-xl pointer-events-none"></div>
+            <div class="absolute right-6 top-4 text-amber-400/15 text-6xl pointer-events-none">
+                <i class="fa-solid fa-torii-gate"></i>
+            </div>
+
+            <!-- Title & Quick Data Backup Actions -->
+            <div class="flex items-center justify-between mb-4 relative z-10">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="gold-badge text-white text-xs font-bold px-2.5 py-0.5 rounded-full shadow-sm">
+                            NAGOYA TRIP
+                        </span>
+                        <span id="tripDateRangeBadge" class="text-xs text-slate-300 font-medium">日本中部自由行</span>
+                    </div>
+                    <h1 id="tripMainTitle" class="text-2xl font-bold tracking-tight mt-1 flex items-center gap-2 cursor-pointer hover:text-amber-300 transition" onclick="openTitleModal()">
+                        <span>名古屋美食古蹟之旅</span>
+                        <i class="fa-solid fa-pen text-xs text-slate-400"></i>
+                    </h1>
+                </div>
+
+                <!-- Quick Backup / Share Button -->
+                <div class="flex items-center gap-2">
+                    <button onclick="switchMainTab('tools')" title="備份與工具" class="w-10 h-10 rounded-2xl bg-white/10 hover:bg-white/20 backdrop-blur-md flex items-center justify-center text-amber-300 transition active:scale-95">
+                        <i class="fa-solid fa-cloud-arrow-down text-base"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Live Weather Widget (Open-Meteo API) -->
+            <div class="bg-white/10 backdrop-blur-md border border-white/15 rounded-2xl p-3.5 relative z-10">
+                <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center gap-1.5">
+                        <i class="fa-solid fa-location-dot text-amber-400 text-sm"></i>
+                        <select id="weatherLocationSelect" onchange="fetchNagoyaWeather()" class="bg-transparent text-white text-sm font-semibold focus:outline-none cursor-pointer pr-1">
+                            <option value="nagoya" class="text-slate-900">名古屋市區 (榮/名站)</option>
+                            <option value="ghibli" class="text-slate-900">吉卜力公園 (長久手)</option>
+                            <option value="inuyama" class="text-slate-900">犬山城 / 犬山町</option>
+                            <option value="takayama" class="text-slate-900">高山 / 白川鄉</option>
+                        </select>
+                        <span class="text-[11px] text-slate-300 bg-slate-800/70 px-2 py-0.5 rounded-full">即時天氣</span>
+                    </div>
+                    <button onclick="fetchNagoyaWeather(true)" class="text-xs text-slate-300 hover:text-white flex items-center gap-1 transition">
+                        <i id="weatherRefreshIcon" class="fa-solid fa-arrows-rotate"></i>
+                        <span id="weatherUpdateTime">更新</span>
+                    </button>
+                </div>
+
+                <!-- Current Weather + 4-Day Mini Forecast -->
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+                    <div class="md:col-span-5 flex items-center justify-between md:justify-start gap-4 border-b md:border-b-0 md:border-r border-white/10 pb-2.5 md:pb-0 md:pr-4">
+                        <div class="flex items-center gap-3">
+                            <div id="currentWeatherIcon" class="text-3xl text-amber-300 w-10 text-center">
+                                <i class="fa-solid fa-sun"></i>
+                            </div>
+                            <div>
+                                <div class="flex items-baseline gap-1.5">
+                                    <span id="currentTemp" class="text-2xl font-bold">--°C</span>
+                                    <span id="currentWeatherDesc" class="text-xs text-amber-200 font-medium">載入中...</span>
+                                </div>
+                                <div class="text-[11px] text-slate-300 flex items-center gap-2 mt-0.5">
+                                    <span>體感 <strong id="apparentTemp">--°C</strong></span>
+                                    <span>•</span>
+                                    <span>濕度 <strong id="currentHumidity">--%</strong></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 4-Day Forecast Strip -->
+                    <div id="forecastStrip" class="md:col-span-7 grid grid-cols-4 gap-1.5 text-center">
+                        <!-- Dynamically populated by JS -->
+                        <div class="bg-slate-900/40 rounded-xl p-1.5 text-xs text-slate-300">讀取中...</div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 overflow-y-auto pb-24 px-4 pt-4">
+
+            <!-- ================= TAB 1: 行程規劃 (ITINERARY) ================= -->
+            <section id="tab-itinerary" class="space-y-4">
+                
+                <!-- Day Selector Bar -->
+                <div class="flex items-center justify-between gap-2">
+                    <div id="dayTabsContainer" class="flex items-center gap-2 overflow-x-auto no-scrollbar py-1 flex-1">
+                        <!-- Dynamically generated Day pills -->
+                    </div>
+                    <div class="flex items-center gap-1 shrink-0">
+                        <button onclick="addNewDay()" class="px-3 py-2 rounded-xl bg-amber-500/15 text-amber-700 hover:bg-amber-500/25 text-xs font-bold flex items-center gap-1 transition active:scale-95">
+                            <i class="fa-solid fa-plus"></i> 新增天數
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Selected Day Header & Summary Card -->
+                <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h2 id="currentDayTitle" class="text-lg font-bold text-slate-800">Day 1</h2>
+                            <button onclick="openDayMetaModal()" class="text-xs text-slate-400 hover:text-amber-600 px-1.5 py-0.5 rounded-lg border border-slate-200">
+                                <i class="fa-solid fa-pen-to-square mr-1"></i>編輯主題/日期
+                            </button>
+                            <button onclick="deleteCurrentDay()" id="deleteDayBtn" class="text-xs text-rose-500 hover:bg-rose-50 px-2 py-0.5 rounded-lg transition">
+                                <i class="fa-regular fa-trash-can"></i>
+                            </button>
+                        </div>
+                        <p id="currentDaySubtitle" class="text-xs text-slate-500 mt-0.5">抵達名古屋・榮商圈與綠洲21夜景</p>
+                    </div>
+
+                    <button onclick="openItineraryModal()" class="gold-badge text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-md hover:opacity-95 flex items-center gap-2 transition active:scale-95">
+                        <i class="fa-solid fa-plus"></i>
+                        <span>新增行程</span>
+                    </button>
+                </div>
+
+                <!-- Itinerary Timeline List -->
+                <div id="itineraryListContainer" class="space-y-3">
+                    <!-- Populated via JS -->
+                </div>
+            </section>
+
+            <!-- ================= TAB 2: 分帳紀錄 (EXPENSE SPLITTER) ================= -->
+            <section id="tab-expenses" class="hidden space-y-4">
+
+                <!-- Exchange Rate & Companions Bar -->
+                <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 space-y-3">
+                    <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-sm">
+                                ¥
+                            </span>
+                            <div>
+                                <div class="text-xs text-slate-500">目前設定匯率 (1 JPY 兌換 TWD)</div>
+                                <div class="flex items-center gap-2 mt-0.5">
+                                    <span class="text-sm font-bold text-slate-800">1 日圓 =</span>
+                                    <input id="exchangeRateInput" type="number" step="0.001" value="0.215" onchange="updateExchangeRate(this.value)" class="w-20 px-2 py-0.5 text-sm font-bold text-amber-700 bg-amber-50 border border-amber-300 rounded-lg focus:outline-none">
+                                    <span class="text-sm font-bold text-slate-800">台幣</span>
+                                </div>
+                            </div>
+                        </div>
+                        <button onclick="openCompanionModal()" class="text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl flex items-center gap-1.5 transition">
+                            <i class="fa-solid fa-user-group text-amber-600"></i>
+                            <span>管理旅伴 (<span id="companionCountLabel">3</span>人)</span>
+                        </button>
+                    </div>
+
+                    <!-- Companions Chips -->
+                    <div class="flex items-center gap-1.5 flex-wrap" id="companionChipsBar">
+                        <!-- Dynamically populated -->
+                    </div>
+                </div>
+
+                <!-- Summary Metrics Cards -->
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    <div class="bg-slate-800 text-white rounded-2xl p-4 shadow-sm">
+                        <div class="text-xs text-slate-400">旅途總支出 (折合台幣)</div>
+                        <div id="totalExpenseTWD" class="text-2xl font-bold text-amber-400 mt-1">NT$ 0</div>
+                        <div id="totalExpenseJPY" class="text-[11px] text-slate-300 mt-0.5">約 ¥0 日圓</div>
+                    </div>
+                    <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80">
+                        <div class="text-xs text-slate-500">平均每人分攤</div>
+                        <div id="perPersonExpenseTWD" class="text-2xl font-bold text-slate-800 mt-1">NT$ 0</div>
+                        <div id="expenseRecordCount" class="text-[11px] text-slate-400 mt-0.5">共 0 筆消費紀錄</div>
+                    </div>
+                    <div class="col-span-2 md:col-span-1 bg-amber-50/90 rounded-2xl p-4 border border-amber-200/80 flex items-center justify-between">
+                        <div>
+                            <div class="text-xs font-semibold text-amber-800">新增一筆消費</div>
+                            <div class="text-[11px] text-amber-700/80 mt-0.5">支援日幣/台幣自動換算分攤</div>
+                        </div>
+                        <button onclick="openExpenseModal()" class="gold-badge text-white px-4 py-2.5 rounded-xl font-bold text-sm shadow-md hover:opacity-95 transition active:scale-95 flex items-center gap-1.5 shrink-0">
+                            <i class="fa-solid fa-plus"></i> 記帳
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Smart Settlement Box (結算誰該給誰錢) -->
+                <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-scale-balanced text-amber-600"></i>
+                            <span>分帳結算建議 (最簡轉帳次數)</span>
+                        </h3>
+                        <button onclick="copySettlementReport()" class="text-xs text-amber-700 bg-amber-50 hover:bg-amber-100 px-2.5 py-1 rounded-lg font-medium flex items-center gap-1 transition">
+                            <i class="fa-regular fa-copy"></i> 複製結算結果
+                        </button>
+                    </div>
+                    <div id="settlementListContainer" class="space-y-2">
+                        <!-- Dynamically calculated -->
+                    </div>
+                </div>
+
+                <!-- Expense History List -->
+                <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-receipt text-slate-500"></i>
+                            <span>消費明細列表</span>
+                        </h3>
+                    </div>
+                    <div id="expenseHistoryContainer" class="divide-y divide-slate-100">
+                        <!-- Dynamically populated -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- ================= TAB 3: 名古屋美食清單 & 備份工具 (TOOLS & BACKUP) ================= -->
+            <section id="tab-tools" class="hidden space-y-4">
+
+                <!-- GitHub Static Hosting & Data Backup Explanation Card -->
+                <div class="bg-gradient-to-br from-slate-800 to-slate-900 text-white rounded-2xl p-5 shadow-md">
+                    <div class="flex items-start justify-between gap-3">
+                        <div>
+                            <span class="bg-emerald-500/20 text-emerald-300 text-xs font-bold px-2.5 py-0.5 rounded-full border border-emerald-400/30">
+                                <i class="fa-solid fa-check-circle mr-1"></i>已啟用本機自動記憶存檔
+                            </span>
+                            <h3 class="text-lg font-bold mt-2">一鍵打包與資料備份</h3>
+                            <p class="text-xs text-slate-300 mt-1 leading-relaxed">
+                                您在網頁上的所有修改都會<strong>自動儲存在目前的手機/電腦瀏覽器中</strong>（重新整理也不會消失）。您還可以隨時點下方按鈕直接下載 <code class="text-amber-300">index.html</code> 丟上 GitHub，或匯出 <code class="text-amber-300">.json</code> 備份檔！
+                            </p>
+                        </div>
+                        <i class="fa-brands fa-github text-3xl text-slate-400"></i>
+                    </div>
+
+                    <!-- Primary Action: Download index.html directly for GitHub -->
+                    <div class="mt-4">
+                        <button onclick="downloadStandaloneHTML()" class="w-full gold-badge hover:opacity-95 text-white font-bold text-xs py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-lg transition active:scale-95">
+                            <i class="fa-solid fa-file-code text-base"></i>
+                            <span>① 點此直接下載 index.html 網頁檔 (含目前最新行程與帳目，可直接上傳 GitHub)</span>
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mt-2.5">
+                        <button onclick="exportDataAsJSON()" class="bg-white/15 hover:bg-white/25 text-amber-300 font-bold text-xs py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 border border-white/15 transition active:scale-95">
+                            <i class="fa-solid fa-download"></i>
+                            <span>匯出備份檔 (.json)</span>
+                        </button>
+
+                        <label class="bg-white/10 hover:bg-white/20 text-white font-semibold text-xs py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 cursor-pointer border border-white/15 transition active:scale-95">
+                            <i class="fa-solid fa-upload text-amber-300"></i>
+                            <span>載入備份檔 (.json)</span>
+                            <input type="file" accept=".json" onchange="importDataFromJSON(event)" class="hidden">
+                        </label>
+
+                        <button onclick="copyItineraryForLine()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow transition active:scale-95">
+                            <i class="fa-brands fa-line text-base"></i>
+                            <span>複製行程傳至 LINE</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Step-by-Step GitHub Pages Guide Card -->
+                <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 space-y-3">
+                    <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-brands fa-github text-slate-800 text-base"></i>
+                        <span>新手超簡單！4 步驟免費放到 GitHub 變成手機 APP</span>
+                    </h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+                        <div class="p-3 rounded-xl bg-amber-50/60 border border-amber-200/80">
+                            <div class="font-bold text-amber-900 mb-1">步驟 1：下載 index.html</div>
+                            <p class="text-slate-600 leading-relaxed">先在這個畫面把行程改好，接著點擊上方金色的<strong>「點此直接下載 index.html 網頁檔」</strong>按鈕，檔案就會存到您的電腦或手機。</p>
+                        </div>
+                        <div class="p-3 rounded-xl bg-slate-50 border border-slate-200/70">
+                            <div class="font-bold text-slate-800 mb-1">步驟 2：在 GitHub 建立專案</div>
+                            <p class="text-slate-600 leading-relaxed">登入 <a href="https://github.com" target="_blank" class="text-amber-700 underline font-semibold">github.com</a>，點右上角 <strong>「+」號 ➔ New repository</strong>。在 Repository name 輸入 <code class="bg-slate-200 px-1 rounded">nagoya-trip</code>，選擇 <strong>Public</strong>，再點最下方綠色 <strong>Create repository</strong>。</p>
+                        </div>
+                        <div class="p-3 rounded-xl bg-slate-50 border border-slate-200/70">
+                            <div class="font-bold text-slate-800 mb-1">步驟 3：上傳 index.html</div>
+                            <p class="text-slate-600 leading-relaxed">在新建好的頁面中，點擊藍字 <strong>「uploading an existing file」</strong>，把剛剛下載的 <code class="bg-slate-200 px-1 rounded">index.html</code> 拖曳進去，再點下方綠色按鈕 <strong>Commit changes</strong>。</p>
+                        </div>
+                        <div class="p-3 rounded-xl bg-emerald-50/60 border border-emerald-200/80">
+                            <div class="font-bold text-emerald-900 mb-1">步驟 4：開啟 GitHub Pages 網址</div>
+                            <p class="text-slate-600 leading-relaxed">點專案上方的 <strong>⚙️ Settings</strong> ➔ 左側選單點 <strong>Pages</strong> ➔ 在 <strong>Branch</strong> 下拉選單把 <code class="bg-slate-200 px-1 rounded">None</code> 改為 <code class="bg-slate-200 px-1 rounded">main</code> 並按 <strong>Save</strong>。等 1 分鐘重新整理，上方就會出現您的專屬網址！</p>
+                        </div>
+                    </div>
+                    <div class="p-3 rounded-xl bg-indigo-50/70 border border-indigo-200/70 text-xs text-indigo-950 flex items-start gap-2.5">
+                        <i class="fa-solid fa-mobile-screen-button text-indigo-600 text-base mt-0.5"></i>
+                        <div>
+                            <span class="font-bold">📱 進階秘訣：把網址變成手機桌面真 APP 圖示！</span>
+                            <p class="text-slate-600 mt-0.5 leading-relaxed">
+                                用手機打開您的 GitHub Pages 網址後：<br>
+                                • <strong>iPhone (Safari)</strong>：點擊底部中間的「分享 <i class="fa-solid fa-arrow-up-from-bracket"></i>」按鈕 ➔ 往下滑點選<strong>「加入主畫面」</strong>。<br>
+                                • <strong>Android (Chrome)</strong>：點擊右上角「⋮」選單 ➔ 點選<strong>「加到主畫面」</strong>或「安裝應用程式」。
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Nagoya Must-Eat Checklist (名古屋名物打卡清單) -->
+                <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80">
+                    <div class="flex items-center justify-between mb-3">
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                                <i class="fa-solid fa-utensils text-amber-600"></i>
+                                <span>名古屋必吃名物打卡清單</span>
+                            </h3>
+                            <p class="text-xs text-slate-500 mt-0.5">點擊即可標記已品嚐，也可一鍵加入當日行程</p>
+                        </div>
+                        <span id="foodProgressBadge" class="text-xs font-bold bg-amber-100 text-amber-800 px-2.5 py-1 rounded-full">0 / 6</span>
+                    </div>
+
+                    <div id="nagoyaFoodGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        <!-- Dynamically rendered -->
+                    </div>
+                </div>
+
+                <!-- Useful Nagoya Transport & Emergency Card -->
+                <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 space-y-3">
+                    <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-train-subway text-indigo-600"></i>
+                        <span>名古屋交通與實用小抄</span>
+                    </h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+                        <div class="p-3 rounded-xl bg-slate-50 border border-slate-200/70">
+                            <div class="font-bold text-slate-800 mb-1">🚄 中部國際機場 (NGO) 進市區</div>
+                            <p class="text-slate-600 leading-relaxed">搭乘名鐵「μSKY (全車對號)」約 28 分鐘直達名鐵名古屋站；一般特急約 37 分鐘。</p>
+                        </div>
+                        <div class="p-3 rounded-xl bg-slate-50 border border-slate-200/70">
+                            <div class="font-bold text-slate-800 mb-1">🚇 名古屋市營地下鐵一日券</div>
+                            <p class="text-slate-600 leading-relaxed">週末與國定假日可購買「ドニチエコきっぷ (週末環保票)」¥620，搭乘 3 次以上即回本！</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- Bottom App Navigation Bar -->
+        <nav class="fixed md:absolute bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200 px-6 py-2 flex items-center justify-around z-30">
+            <button onclick="switchMainTab('itinerary')" id="nav-itinerary" class="flex flex-col items-center py-1 px-4 rounded-2xl text-amber-600 font-bold transition">
+                <i class="fa-solid fa-calendar-day text-lg"></i>
+                <span class="text-[11px] mt-0.5">行程規劃</span>
+            </button>
+            <button onclick="switchMainTab('expenses')" id="nav-expenses" class="flex flex-col items-center py-1 px-4 rounded-2xl text-slate-400 hover:text-slate-600 font-medium transition">
+                <i class="fa-solid fa-coins text-lg"></i>
+                <span class="text-[11px] mt-0.5">分帳記帳</span>
+            </button>
+            <button onclick="switchMainTab('tools')" id="nav-tools" class="flex flex-col items-center py-1 px-4 rounded-2xl text-slate-400 hover:text-slate-600 font-medium transition">
+                <i class="fa-solid fa-suitcase-rolling text-lg"></i>
+                <span class="text-[11px] mt-0.5">名物與備份</span>
+            </button>
+        </nav>
+
+    </div>
+
+    <!-- ================= MODALS (NO ALERT/CONFIRM USED) ================= -->
+
+    <!-- 1. Add / Edit Itinerary Modal -->
+    <div id="itineraryModal" class="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full p-5 shadow-2xl space-y-4 animate-fade-in">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 id="itineraryModalTitle" class="text-base font-bold text-slate-800">新增行程項目</h3>
+                <button onclick="closeItineraryModal()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="space-y-3 text-sm">
+                <input type="hidden" id="editItemId">
+                
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">時間</label>
+                        <input id="itemTimeInput" type="time" value="10:00" class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:border-amber-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">類別</label>
+                        <select id="itemCategoryInput" class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:border-amber-500 focus:outline-none">
+                            <option value="sightseeing">🏯 景點觀光</option>
+                            <option value="food">🍱 美食餐廳</option>
+                            <option value="transport">🚄 交通移動</option>
+                            <option value="shopping">🛍️ 購物逛街</option>
+                            <option value="hotel">🏨 飯店住宿</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">行程名稱 *</label>
+                    <input id="itemTitleInput" type="text" placeholder="例如：熱田神宮、蓬萊軒鰻魚飯" class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:border-amber-500 focus:outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">地點或交通方式 (可自動產生 Google Maps 導航)</label>
+                    <input id="itemLocationInput" type="text" placeholder="例如：名鐵神宮前站步行3分" class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:border-amber-500 focus:outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">備註 / 預約編號 / 必買清單</label>
+                    <textarea id="itemNotesInput" rows="2" placeholder="例如：先抽號碼牌、門票 ¥500" class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:border-amber-500 focus:outline-none"></textarea>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-2">
+                <button onclick="closeItineraryModal()" class="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100">取消</button>
+                <button onclick="saveItineraryItem()" class="gold-badge text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-md hover:opacity-95">儲存行程</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Edit Day Theme / Date Modal -->
+    <div id="dayMetaModal" class="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-5 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 class="text-base font-bold text-slate-800">編輯當日主題與日期</h3>
+                <button onclick="closeDayMetaModal()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="space-y-3 text-sm">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">日期標示 (選填)</label>
+                    <input id="dayDateLabelInput" type="text" placeholder="例如：Day 1 (週五)" class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">當日行程主題</label>
+                    <input id="daySubtitleInput" type="text" placeholder="例如：名古屋城・大須觀音商店街" class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none">
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 pt-2">
+                <button onclick="closeDayMetaModal()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100">取消</button>
+                <button onclick="saveDayMeta()" class="gold-badge text-white px-5 py-2 rounded-xl text-xs font-bold">更新</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Add Expense Modal -->
+    <div id="expenseModal" class="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full p-5 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 class="text-base font-bold text-slate-800">新增分帳消費紀錄</h3>
+                <button onclick="closeExpenseModal()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="space-y-3 text-sm">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">消費項目名稱 *</label>
+                    <input id="expTitleInput" type="text" placeholder="例如：蓬萊軒鰻魚飯、名鐵車票、藥妝代墊" class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:border-amber-500 focus:outline-none">
+                </div>
+
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="col-span-2">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">金額 *</label>
+                        <input id="expAmountInput" type="number" step="any" placeholder="例如：12500" class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:border-amber-500 focus:outline-none font-bold">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">幣別</label>
+                        <select id="expCurrencyInput" class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:border-amber-500 focus:outline-none font-semibold">
+                            <option value="JPY">JPY 日圓 (¥)</option>
+                            <option value="TWD">TWD 台幣 ($)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">誰先付錢 (墊付人)</label>
+                    <select id="expPaidBySelect" class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:border-amber-500 focus:outline-none"></select>
+                </div>
+
+                <div>
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="block text-xs font-semibold text-slate-600">由誰共同分攤 (勾選參與者)</label>
+                        <button type="button" onclick="toggleAllSplitCheckboxes()" class="text-[11px] text-amber-600 font-semibold">全選</button>
+                    </div>
+                    <div id="expSplitWithContainer" class="grid grid-cols-2 gap-2 pt-1">
+                        <!-- Checkboxes populated dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-2">
+                <button onclick="closeExpenseModal()" class="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100">取消</button>
+                <button onclick="saveExpenseRecord()" class="gold-badge text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-md">儲存這筆帳</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Companion Manager Modal -->
+    <div id="companionModal" class="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-5 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 class="text-base font-bold text-slate-800">管理同行旅伴名單</h3>
+                <button onclick="closeCompanionModal()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="flex gap-2">
+                <input id="newCompanionInput" type="text" placeholder="輸入旅伴暱稱 (例如：小陳)" class="flex-1 px-3 py-2 text-sm rounded-xl border border-slate-200 focus:outline-none">
+                <button onclick="addCompanion()" class="gold-badge text-white px-4 py-2 rounded-xl text-xs font-bold shrink-0">新增</button>
+            </div>
+
+            <div id="companionModalList" class="space-y-1.5 max-h-60 overflow-y-auto">
+                <!-- Populated dynamically -->
+            </div>
+
+            <div class="text-right pt-2">
+                <button onclick="closeCompanionModal()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-100 text-slate-700">完成</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. Edit Main Trip Title Modal -->
+    <div id="titleModal" class="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-5 shadow-2xl space-y-4">
+            <h3 class="text-base font-bold text-slate-800">修改旅遊手冊名稱</h3>
+            <div class="space-y-3 text-sm">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">旅遊主標題</label>
+                    <input id="tripTitleInput" type="text" class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">副標 / 日期區間</label>
+                    <input id="tripDateRangeInput" type="text" placeholder="例如：5天4夜・日本中部" class="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none">
+                </div>
+            </div>
+            <div class="flex justify-end gap-2">
+                <button onclick="closeTitleModal()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-500">取消</button>
+                <button onclick="saveTripTitle()" class="gold-badge text-white px-5 py-2 rounded-xl text-xs font-bold">儲存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Banner -->
+    <div id="toastBanner" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 hidden bg-slate-900 text-white text-xs font-semibold px-4 py-2.5 rounded-2xl shadow-xl border border-white/15 flex items-center gap-2">
+        <i class="fa-solid fa-circle-check text-amber-400"></i>
+        <span id="toastMessage">已更新</span>
+    </div>
+
+    <script>
+        // ============================================================================
+        // 1. STATE MANAGEMENT (Pre-loaded with rich Nagoya Itinerary & Sample Data)
+        // ============================================================================
+        const STORAGE_KEY = "nagoya_travel_app_state_v1";
+
+        let appState = /*__APP_STATE_START__*/{
+            tripTitle: "名古屋美食古蹟之旅",
+            tripDateRange: "4天3夜・日本中部自由行",
+            selectedDayIndex: 0,
+            exchangeRate: 0.215,
+            companions: ["我", "阿傑", "小芸"],
+            days: [
+                {
+                    id: "day-1",
+                    label: "Day 1",
+                    subtitle: "抵達中部國際機場・榮商圈與綠洲21夜景",
+                    items: [
+                        {
+                            id: "item-101",
+                            time: "13:30",
+                            category: "transport",
+                            title: "抵達中部國際機場 (NGO) & 搭乘名鐵 μSKY",
+                            location: "中部国際空港駅",
+                            notes: "先在機場領取車票，搭乘 μSKY 約 28 分鐘直達名鐵名古屋站。",
+                            completed: false
+                        },
+                        {
+                            id: "item-102",
+                            time: "15:00",
+                            category: "hotel",
+                            title: "名古屋站 / 榮商圈飯店 Check-in",
+                            location: "名古屋駅 桜通口",
+                            notes: "寄放行李、稍作休息準備出發逛街。",
+                            completed: false
+                        },
+                        {
+                            id: "item-103",
+                            time: "17:00",
+                            category: "food",
+                            title: "矢場とん (Yabaton) 味噌豬排晚餐",
+                            location: "矢場とん 名古屋駅名鉄店",
+                            notes: "必點鐵板味噌豬排與極上里肌雙拼！",
+                            completed: false
+                        },
+                        {
+                            id: "item-104",
+                            time: "19:30",
+                            category: "sightseeing",
+                            title: "綠洲 21 (Oasis 21) 水之宇宙船 & 中部電力塔",
+                            location: "オアシス21",
+                            notes: "頂樓玻璃步道拍名古屋電視塔夜景超美，樓下還有吉卜力橡子共和國。",
+                            completed: false
+                        }
+                    ]
+                },
+                {
+                    id: "day-2",
+                    label: "Day 2",
+                    subtitle: "小倉吐司早餐・名古屋城本丸御殿・大須商店街",
+                    items: [
+                        {
+                            id: "item-201",
+                            time: "08:30",
+                            category: "food",
+                            title: "客美多咖啡 / 喫茶店「點飲料送小倉紅豆吐司」",
+                            location: "コメダ珈琲店 名古屋",
+                            notes: "體驗道地名古屋 Morning Service 早餐文化。",
+                            completed: false
+                        },
+                        {
+                            id: "item-202",
+                            time: "10:00",
+                            category: "sightseeing",
+                            title: "名古屋城 & 本丸御殿參觀",
+                            location: "名古屋城",
+                            notes: "門票 ¥500，必看金碧輝煌的本丸御殿障壁畫與金鯱，順便逛金シャチ横丁。",
+                            completed: false
+                        },
+                        {
+                            id: "item-203",
+                            time: "13:00",
+                            category: "food",
+                            title: "あつた蓬莱軒 (蓬萊軒) 鰻魚飯三吃",
+                            location: "あつた蓬莱軒 松坂屋店",
+                            notes: "一吃原味、二加蔥花海苔芥末、三加高湯茶泡飯！建議提早排隊。",
+                            completed: false
+                        },
+                        {
+                            id: "item-204",
+                            time: "15:30",
+                            category: "shopping",
+                            title: "大須觀音 & 大須商店街挖寶",
+                            location: "大須観音商店街",
+                            notes: "逛古著、動漫周邊、水曜日的愛麗絲，買鯛魚燒與炸雞邊走邊吃。",
+                            completed: false
+                        }
+                    ]
+                },
+                {
+                    id: "day-3",
+                    label: "Day 3",
+                    subtitle: "熱田神宮參拜・犬山城半日遊或吉卜力公園",
+                    items: [
+                        {
+                            id: "item-301",
+                            time: "09:30",
+                            category: "sightseeing",
+                            title: "熱田神宮參拜 & 宮きしめん (棊子麵)",
+                            location: "熱田神宮",
+                            notes: "日本三大神宮之一，參拜後在森林境內品嚐現煮寬扁烏龍麵。",
+                            completed: false
+                        },
+                        {
+                            id: "item-302",
+                            time: "13:00",
+                            category: "sightseeing",
+                            title: "國寶犬山城 & 城下町老街散步",
+                            location: "犬山城",
+                            notes: "從名鐵名古屋搭約 30 分鐘至犬山遊園站，穿過三光稻荷神社粉紅愛心繪馬牆。",
+                            completed: false
+                        },
+                        {
+                            id: "item-303",
+                            time: "19:00",
+                            category: "food",
+                            title: "世界的山將 (世界の山ちゃん) 幻之手羽先",
+                            location: "世界の山ちゃん 栄",
+                            notes: "黑胡椒香氣十足的炸雞翅配生啤酒！",
+                            completed: false
+                        }
+                    ]
+                }
+            ],
+            expenses: [
+                {
+                    id: "exp-1",
+                    title: "名鐵 μSKY 機場特急車票 (3人)",
+                    amount: 3750,
+                    currency: "JPY",
+                    paidBy: "我",
+                    splitWith: ["我", "阿傑", "小芸"],
+                    createdAt: "Day 1"
+                },
+                {
+                    id: "exp-2",
+                    title: "矢場とん 味噌豬排晚餐",
+                    amount: 6300,
+                    currency: "JPY",
+                    paidBy: "阿傑",
+                    splitWith: ["我", "阿傑", "小芸"],
+                    createdAt: "Day 1"
+                },
+                {
+                    id: "exp-3",
+                    title: "蓬萊軒鰻魚飯三吃",
+                    amount: 13800,
+                    currency: "JPY",
+                    paidBy: "小芸",
+                    splitWith: ["我", "阿傑", "小芸"],
+                    createdAt: "Day 2"
+                }
+            ],
+            nagoyaFoods: [
+                { id: "f1", name: "ひつまぶし (鰻魚飯三吃)", shop: "あつた蓬莱軒 / まるや本店", eaten: true },
+                { id: "f2", name: "味噌カツ (濃郁紅味噌豬排)", shop: "矢場とん (Yabaton)", eaten: true },
+                { id: "f3", name: "手羽先 (酥炸胡椒雞翅)", shop: "世界の山ちゃん / 風来坊", eaten: false },
+                { id: "f4", name: "小倉トースト (紅豆奶油吐司)", shop: "コメダ珈琲 / コンパル (Konparu)", eaten: false },
+                { id: "f5", name: "きしめん (名古屋寬扁烏龍麵)", shop: "宮きしめん 神宮店 / 驛釜きしめん", eaten: false },
+                { id: "f6", name: "ぴよりん (Piyorin 小雞布丁蛋糕)", shop: "JR名古屋站 ぴよりんSTATION", eaten: false }
+            ]
+        }/*__APP_STATE_END__*/;
+
+        function saveStateToLocal() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+            } catch (e) {
+                console.warn("Unable to save to localStorage:", e);
+            }
+        }
+
+        function loadStateFromLocal() {
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    if (parsed && Array.isArray(parsed.days)) {
+                        appState = parsed;
+                    }
+                }
+            } catch (e) {
+                console.warn("Unable to load from localStorage:", e);
+            }
+        }
+
+        // Category Metadata Map
+        const categoryMeta = {
+            sightseeing: { label: "景點", icon: "fa-torii-gate", bg: "bg-amber-100 text-amber-800 border-amber-200" },
+            food: { label: "美食", icon: "fa-utensils", bg: "bg-rose-100 text-rose-800 border-rose-200" },
+            transport: { label: "交通", icon: "fa-train-subway", bg: "bg-sky-100 text-sky-800 border-sky-200" },
+            shopping: { label: "購物", icon: "fa-bag-shopping", bg: "bg-purple-100 text-purple-800 border-purple-200" },
+            hotel: { label: "住宿", icon: "fa-bed", bg: "bg-emerald-100 text-emerald-800 border-emerald-200" }
+        };
+
+        // Coordinates for Weather API (Open-Meteo)
+        const weatherLocations = {
+            nagoya: { name: "名古屋市區", lat: 35.1815, lon: 136.9066 },
+            ghibli: { name: "吉卜力公園 (長久手)", lat: 35.1764, lon: 137.0881 },
+            inuyama: { name: "犬山城", lat: 35.3883, lon: 136.9392 },
+            takayama: { name: "高山 / 白川鄉", lat: 36.1461, lon: 137.2522 }
+        };
+
+        // ============================================================================
+        // 2. WEATHER FETCHING (Open-Meteo Free Real-time API)
+        // ============================================================================
+        function getWeatherMetaFromWMO(code) {
+            if (code === 0) return { desc: "晴朗無雲", icon: "fa-sun text-amber-300" };
+            if (code === 1 || code === 2) return { desc: "晴時多雲", icon: "fa-cloud-sun text-amber-200" };
+            if (code === 3) return { desc: "陰天多雲", icon: "fa-cloud text-slate-300" };
+            if (code >= 45 && code <= 48) return { desc: "起霧微涼", icon: "fa-smog text-slate-300" };
+            if (code >= 51 && code <= 67) return { desc: "短暫陣雨", icon: "fa-cloud-rain text-sky-300" };
+            if (code >= 71 && code <= 77) return { desc: "降雪天氣", icon: "fa-snowflake text-cyan-200" };
+            if (code >= 80 && code <= 82) return { desc: "局部陣雨", icon: "fa-cloud-showers-heavy text-sky-300" };
+            if (code >= 95) return { desc: "雷陣雨", icon: "fa-cloud-bolt text-yellow-300" };
+            return { desc: "舒適多雲", icon: "fa-cloud-sun text-amber-200" };
+        }
+
+        async function fetchNagoyaWeather(showNotification = false) {
+            const locKey = document.getElementById("weatherLocationSelect").value || "nagoya";
+            const coords = weatherLocations[locKey];
+            const refreshIcon = document.getElementById("weatherRefreshIcon");
+            refreshIcon.classList.add("fa-spin");
+
+            try {
+                const url = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FTokyo&forecast_days=4`;
+                const response = await fetch(url);
+                if (!response.ok) throw new Error("Weather fetch failed");
+                const data = await response.json();
+
+                // Update Current Weather
+                const current = data.current;
+                const meta = getWeatherMetaFromWMO(current.weather_code);
+                document.getElementById("currentTemp").textContent = `${Math.round(current.temperature_2m)}°C`;
+                document.getElementById("currentWeatherDesc").textContent = meta.desc;
+                document.getElementById("apparentTemp").textContent = `${Math.round(current.apparent_temperature)}°C`;
+                document.getElementById("currentHumidity").textContent = `${current.relative_humidity_2m}%`;
+                document.getElementById("currentWeatherIcon").innerHTML = `<i class="fa-solid ${meta.icon}"></i>`;
+
+                const now = new Date();
+                document.getElementById("weatherUpdateTime").textContent = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+                // Update 4-Day Forecast Strip
+                const daily = data.daily;
+                const stripEl = document.getElementById("forecastStrip");
+                stripEl.innerHTML = "";
+
+                const weekNames = ["週日", "週一", "週二", "週三", "週四", "週五", "週六"];
+                for (let i = 0; i < 4; i++) {
+                    const dObj = new Date(daily.time[i]);
+                    const dayName = i === 0 ? "今日" : weekNames[dObj.getDay()];
+                    const dMeta = getWeatherMetaFromWMO(daily.weather_code[i]);
+                    const maxT = Math.round(daily.temperature_2m_max[i]);
+                    const minT = Math.round(daily.temperature_2m_min[i]);
+                    const rainProb = daily.precipitation_probability_max[i] ?? 0;
+
+                    stripEl.innerHTML += `
+                        <div class="bg-slate-900/45 border border-white/10 rounded-xl px-1.5 py-1.5 flex flex-col items-center">
+                            <span class="text-[10px] text-slate-300 font-medium">${dayName}</span>
+                            <i class="fa-solid ${dMeta.icon} text-sm my-1"></i>
+                            <span class="text-[11px] font-bold text-white">${minT}°~${maxT}°</span>
+                            <span class="text-[9px] text-sky-300"><i class="fa-solid fa-droplet text-[8px] mr-0.5"></i>${rainProb}%</span>
+                        </div>
+                    `;
+                }
+
+                if (showNotification) showToast(`已更新「${coords.name}」最新天氣！`);
+            } catch (err) {
+                document.getElementById("currentWeatherDesc").textContent = "離線模式";
+                if (showNotification) showToast("目前無法連線至氣象伺服器，請檢查網路");
+            } finally {
+                refreshIcon.classList.remove("fa-spin");
+            }
+        }
+
+        // ============================================================================
+        // 3. TAB SWITCHING & UI RENDERING
+        // ============================================================================
+        function switchMainTab(tabName) {
+            const tabs = ["itinerary", "expenses", "tools"];
+            tabs.forEach(t => {
+                const sec = document.getElementById(`tab-${t}`);
+                const nav = document.getElementById(`nav-${t}`);
+                if (t === tabName) {
+                    sec.classList.remove("hidden");
+                    nav.className = "flex flex-col items-center py-1 px-4 rounded-2xl text-amber-600 font-bold transition";
+                } else {
+                    sec.classList.add("hidden");
+                    nav.className = "flex flex-col items-center py-1 px-4 rounded-2xl text-slate-400 hover:text-slate-600 font-medium transition";
+                }
+            });
+
+            if (tabName === "itinerary") renderItineraryView();
+            if (tabName === "expenses") renderExpensesView();
+            if (tabName === "tools") renderToolsView();
+        }
+
+        function showToast(message) {
+            const banner = document.getElementById("toastBanner");
+            document.getElementById("toastMessage").textContent = message;
+            banner.classList.remove("hidden");
+            clearTimeout(window._toastTimer);
+            window._toastTimer = setTimeout(() => {
+                banner.classList.add("hidden");
+            }, 2500);
+        }
+
+        // ============================================================================
+        // 4. ITINERARY FUNCTIONS (Add / Edit / Delete / Reorder / Complete)
+        // ============================================================================
+        function renderItineraryView() {
+            document.getElementById("tripMainTitle").querySelector("span").textContent = appState.tripTitle;
+            document.getElementById("tripDateRangeBadge").textContent = appState.tripDateRange;
+
+            // Ensure valid selectedDayIndex
+            if (appState.selectedDayIndex >= appState.days.length) {
+                appState.selectedDayIndex = Math.max(0, appState.days.length - 1);
+            }
+
+            // Render Day Pills
+            const dayTabsEl = document.getElementById("dayTabsContainer");
+            dayTabsEl.innerHTML = "";
+            appState.days.forEach((day, idx) => {
+                const active = idx === appState.selectedDayIndex;
+                dayTabsEl.innerHTML += `
+                    <button onclick="selectDay(${idx})" class="px-4 py-2 rounded-xl text-xs font-bold shrink-0 transition ${
+                        active
+                        ? "bg-slate-800 text-amber-400 shadow-sm"
+                        : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-100"
+                    }">
+                        ${day.label}
+                    </button>
+                `;
+            });
+
+            const currentDay = appState.days[appState.selectedDayIndex];
+            document.getElementById("currentDayTitle").textContent = currentDay.label;
+            document.getElementById("currentDaySubtitle").textContent = currentDay.subtitle || "點擊上方編輯按鈕設定當日主題";
+            document.getElementById("deleteDayBtn").style.display = appState.days.length > 1 ? "inline-block" : "none";
+
+            // Sort items chronologically by time
+            currentDay.items.sort((a, b) => (a.time || "99:99").localeCompare(b.time || "99:99"));
+
+            const listEl = document.getElementById("itineraryListContainer");
+            if (currentDay.items.length === 0) {
+                listEl.innerHTML = `
+                    <div class="bg-white rounded-2xl p-8 text-center border border-dashed border-slate-300">
+                        <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-500 flex items-center justify-center mx-auto mb-3 text-xl">
+                            <i class="fa-solid fa-map-location-dot"></i>
+                        </div>
+                        <p class="text-sm font-bold text-slate-700">這一天還沒有安排行程</p>
+                        <p class="text-xs text-slate-400 mt-1">點擊右上角「新增行程」按鈕開始規劃您的名古屋之旅！</p>
+                    </div>
+                `;
+                return;
+            }
+
+            listEl.innerHTML = currentDay.items.map((item) => {
+                const cat = categoryMeta[item.category] || categoryMeta.sightseeing;
+                const mapsQuery = encodeURIComponent(`${item.location || item.title} 名古屋`);
+                const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${mapsQuery}`;
+
+                return `
+                    <div class="bg-white rounded-2xl p-4 shadow-xs border ${item.completed ? 'border-slate-200 bg-slate-50/70 opacity-70' : 'border-slate-200/90'} transition hover:shadow-md">
+                        <div class="flex items-start justify-between gap-3">
+                            
+                            <!-- Left Time & Checkbox -->
+                            <div class="flex items-start gap-3 flex-1">
+                                <button onclick="toggleItemCompleted('${item.id}')" class="mt-1 w-5 h-5 rounded-lg border ${item.completed ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300 hover:border-amber-500'} flex items-center justify-center text-xs shrink-0 transition">
+                                    ${item.completed ? '<i class="fa-solid fa-check"></i>' : ''}
+                                </button>
+
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <span class="text-xs font-extrabold text-slate-800 bg-slate-100 px-2 py-0.5 rounded-md font-mono">
+                                            ${item.time || '--:--'}
+                                        </span>
+                                        <span class="text-[11px] font-semibold px-2 py-0.5 rounded-md border ${cat.bg}">
+                                            <i class="fa-solid ${cat.icon} mr-1"></i>${cat.label}
+                                        </span>
+                                    </div>
+
+                                    <h4 class="text-sm font-bold text-slate-800 mt-1.5 ${item.completed ? 'line-through text-slate-400' : ''}">
+                                        ${escapeHtml(item.title)}
+                                    </h4>
+
+                                    ${item.location ? `
+                                        <div class="mt-1.5 flex items-center gap-2">
+                                            <a href="${mapsUrl}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-xs text-amber-700 hover:text-amber-800 font-medium bg-amber-50 hover:bg-amber-100/80 px-2.5 py-1 rounded-lg transition">
+                                                <i class="fa-solid fa-location-arrow text-[10px]"></i>
+                                                <span>${escapeHtml(item.location)} (開啟地圖)</span>
+                                            </a>
+                                        </div>
+                                    ` : ''}
+
+                                    ${item.notes ? `
+                                        <p class="text-xs text-slate-500 mt-2 bg-slate-50 p-2.5 rounded-xl border border-slate-100 leading-relaxed">
+                                            ${escapeHtml(item.notes)}
+                                        </p>
+                                    ` : ''}
+                                </div>
+                            </div>
+
+                            <!-- Right Action Buttons -->
+                            <div class="flex items-center gap-1 shrink-0">
+                                <button onclick="openItineraryModal('${item.id}')" title="編輯" class="w-8 h-8 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition">
+                                    <i class="fa-solid fa-pen text-xs"></i>
+                                </button>
+                                <button onclick="deleteItineraryItem('${item.id}')" title="刪除" class="w-8 h-8 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition">
+                                    <i class="fa-regular fa-trash-can text-xs"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join("");
+        }
+
+        function selectDay(index) {
+            appState.selectedDayIndex = index;
+            saveStateToLocal();
+            renderItineraryView();
+        }
+
+        function addNewDay() {
+            const nextNum = appState.days.length + 1;
+            appState.days.push({
+                id: "day-" + Date.now(),
+                label: `Day ${nextNum}`,
+                subtitle: "自由探索名古屋周邊行程",
+                items: []
+            });
+            appState.selectedDayIndex = appState.days.length - 1;
+            saveStateToLocal();
+            renderItineraryView();
+            showToast(`已新增 Day ${nextNum}`);
+        }
+
+        function deleteCurrentDay() {
+            if (appState.days.length <= 1) return;
+            const removedLabel = appState.days[appState.selectedDayIndex].label;
+            appState.days.splice(appState.selectedDayIndex, 1);
+            appState.selectedDayIndex = Math.max(0, appState.selectedDayIndex - 1);
+            saveStateToLocal();
+            renderItineraryView();
+            showToast(`已刪除 ${removedLabel}`);
+        }
+
+        function toggleItemCompleted(itemId) {
+            const day = appState.days[appState.selectedDayIndex];
+            const item = day.items.find(i => i.id === itemId);
+            if (item) {
+                item.completed = !item.completed;
+                saveStateToLocal();
+                renderItineraryView();
+            }
+        }
+
+        function openItineraryModal(itemId = null) {
+            const modal = document.getElementById("itineraryModal");
+            const day = appState.days[appState.selectedDayIndex];
+
+            if (itemId) {
+                const item = day.items.find(i => i.id === itemId);
+                if (!item) return;
+                document.getElementById("itineraryModalTitle").textContent = "編輯行程項目";
+                document.getElementById("editItemId").value = item.id;
+                document.getElementById("itemTimeInput").value = item.time || "10:00";
+                document.getElementById("itemCategoryInput").value = item.category || "sightseeing";
+                document.getElementById("itemTitleInput").value = item.title || "";
+                document.getElementById("itemLocationInput").value = item.location || "";
+                document.getElementById("itemNotesInput").value = item.notes || "";
+            } else {
+                document.getElementById("itineraryModalTitle").textContent = `新增行程至 ${day.label}`;
+                document.getElementById("editItemId").value = "";
+                document.getElementById("itemTimeInput").value = "11:00";
+                document.getElementById("itemCategoryInput").value = "sightseeing";
+                document.getElementById("itemTitleInput").value = "";
+                document.getElementById("itemLocationInput").value = "";
+                document.getElementById("itemNotesInput").value = "";
+            }
+
+            modal.classList.remove("hidden");
+            modal.classList.add("flex");
+        }
+
+        function closeItineraryModal() {
+            const modal = document.getElementById("itineraryModal");
+            modal.classList.add("hidden");
+            modal.classList.remove("flex");
+        }
+
+        function saveItineraryItem() {
+            const title = document.getElementById("itemTitleInput").value.trim();
+            if (!title) {
+                showToast("請輸入行程名稱！");
+                return;
+            }
+
+            const editId = document.getElementById("editItemId").value;
+            const time = document.getElementById("itemTimeInput").value || "10:00";
+            const category = document.getElementById("itemCategoryInput").value;
+            const location = document.getElementById("itemLocationInput").value.trim();
+            const notes = document.getElementById("itemNotesInput").value.trim();
+
+            const day = appState.days[appState.selectedDayIndex];
+
+            if (editId) {
+                const item = day.items.find(i => i.id === editId);
+                if (item) {
+                    item.time = time;
+                    item.category = category;
+                    item.title = title;
+                    item.location = location;
+                    item.notes = notes;
+                }
+                showToast("已更新行程項目！");
+            } else {
+                day.items.push({
+                    id: "item-" + Date.now(),
+                    time,
+                    category,
+                    title,
+                    location,
+                    notes,
+                    completed: false
+                });
+                showToast("已加入新行程！");
+            }
+
+            closeItineraryModal();
+            saveStateToLocal();
+            renderItineraryView();
+        }
+
+        function deleteItineraryItem(itemId) {
+            const day = appState.days[appState.selectedDayIndex];
+            day.items = day.items.filter(i => i.id !== itemId);
+            saveStateToLocal();
+            renderItineraryView();
+            showToast("已刪除該筆行程");
+        }
+
+        function openDayMetaModal() {
+            const day = appState.days[appState.selectedDayIndex];
+            document.getElementById("dayDateLabelInput").value = day.label;
+            document.getElementById("daySubtitleInput").value = day.subtitle;
+            const modal = document.getElementById("dayMetaModal");
+            modal.classList.remove("hidden");
+            modal.classList.add("flex");
+        }
+
+        function closeDayMetaModal() {
+            const modal = document.getElementById("dayMetaModal");
+            modal.classList.add("hidden");
+            modal.classList.remove("flex");
+        }
+
+        function saveDayMeta() {
+            const day = appState.days[appState.selectedDayIndex];
+            const newLabel = document.getElementById("dayDateLabelInput").value.trim();
+            const newSub = document.getElementById("daySubtitleInput").value.trim();
+            if (newLabel) day.label = newLabel;
+            day.subtitle = newSub;
+            closeDayMetaModal();
+            saveStateToLocal();
+            renderItineraryView();
+            showToast("已更新當日主題！");
+        }
+
+        // ============================================================================
+        // 5. EXPENSE SPLITTING & MINIMUM-TRANSACTION SETTLEMENT ALGORITHM
+        // ============================================================================
+        function updateExchangeRate(val) {
+            const parsed = parseFloat(val);
+            if (!isNaN(parsed) && parsed > 0) {
+                appState.exchangeRate = parsed;
+                saveStateToLocal();
+                renderExpensesView();
+                showToast(`匯率已更新為 1 JPY = ${parsed} TWD`);
+            }
+        }
+
+        function renderExpensesView() {
+            document.getElementById("exchangeRateInput").value = appState.exchangeRate;
+            document.getElementById("companionCountLabel").textContent = appState.companions.length;
+
+            // Render Companion Chips
+            const chipsBar = document.getElementById("companionChipsBar");
+            chipsBar.innerHTML = appState.companions.map(name => `
+                <span class="inline-flex items-center gap-1.5 text-xs font-semibold bg-slate-100 text-slate-700 px-3 py-1 rounded-full">
+                    <i class="fa-solid fa-user text-[10px] text-amber-600"></i>
+                    ${escapeHtml(name)}
+                </span>
+            `).join("");
+
+            // Calculate Totals & Net Balances (in TWD)
+            let totalTWD = 0;
+            let totalJPYEquivalent = 0;
+            const netBalances = {};
+            appState.companions.forEach(c => netBalances[c] = 0);
+
+            appState.expenses.forEach(exp => {
+                const amountInTWD = exp.currency === "JPY"
+                    ? exp.amount * appState.exchangeRate
+                    : exp.amount;
+                const amountInJPY = exp.currency === "JPY"
+                    ? exp.amount
+                    : exp.amount / appState.exchangeRate;
+
+                totalTWD += amountInTWD;
+                totalJPYEquivalent += amountInJPY;
+
+                const validSplitters = exp.splitWith.filter(person => appState.companions.includes(person));
+                const splitCount = validSplitters.length || 1;
+                const sharePerPerson = amountInTWD / splitCount;
+
+                if (netBalances[exp.paidBy] !== undefined) {
+                    netBalances[exp.paidBy] += amountInTWD;
+                }
+                validSplitters.forEach(person => {
+                    if (netBalances[person] !== undefined) {
+                        netBalances[person] -= sharePerPerson;
+                    }
+                });
+            });
+
+            const perPersonTWD = appState.companions.length > 0 ? totalTWD / appState.companions.length : 0;
+
+            document.getElementById("totalExpenseTWD").textContent = `NT$ ${Math.round(totalTWD).toLocaleString()}`;
+            document.getElementById("totalExpenseJPY").textContent = `約 ¥${Math.round(totalJPYEquivalent).toLocaleString()} 日圓`;
+            document.getElementById("perPersonExpenseTWD").textContent = `NT$ ${Math.round(perPersonTWD).toLocaleString()}`;
+            document.getElementById("expenseRecordCount").textContent = `共 ${appState.expenses.length} 筆消費紀錄`;
+
+            // Compute Simplified Debt Transactions
+            const transactions = computeSimplifiedSettlements(netBalances);
+            const settlementEl = document.getElementById("settlementListContainer");
+
+            if (transactions.length === 0) {
+                settlementEl.innerHTML = `
+                    <div class="text-xs text-slate-400 bg-slate-50 rounded-xl p-3 text-center">
+                        目前所有帳務已結清，無須轉帳！
+                    </div>
+                `;
+            } else {
+                settlementEl.innerHTML = transactions.map(t => {
+                    const jpyApprox = Math.round(t.amountTWD / appState.exchangeRate);
+                    return `
+                        <div class="flex items-center justify-between bg-amber-50/60 border border-amber-200/80 rounded-xl px-3.5 py-2.5 text-xs">
+                            <div class="flex items-center gap-2">
+                                <span class="font-bold text-slate-800 bg-white px-2.5 py-1 rounded-lg shadow-2xs border border-slate-200">${escapeHtml(t.from)}</span>
+                                <span class="text-slate-400 font-medium">應支付給 <i class="fa-solid fa-arrow-right text-amber-600 mx-0.5"></i></span>
+                                <span class="font-bold text-amber-900 bg-amber-200/70 px-2.5 py-1 rounded-lg">${escapeHtml(t.to)}</span>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-sm font-extrabold text-slate-900">NT$ ${Math.round(t.amountTWD).toLocaleString()}</div>
+                                <div class="text-[10px] text-slate-500">或約 ¥${jpyApprox.toLocaleString()}</div>
+                            </div>
+                        </div>
+                    `;
+                }).join("");
+            }
+
+            // Render Expense History
+            const historyEl = document.getElementById("expenseHistoryContainer");
+            if (appState.expenses.length === 0) {
+                historyEl.innerHTML = `<div class="text-xs text-slate-400 py-6 text-center">尚無記帳紀錄，點擊上方「記帳」按鈕新增第一筆消費吧！</div>`;
+            } else {
+                historyEl.innerHTML = [...appState.expenses].reverse().map(exp => {
+                    const twdVal = exp.currency === "JPY" ? Math.round(exp.amount * appState.exchangeRate) : Math.round(exp.amount);
+                    return `
+                        <div class="py-3 flex items-center justify-between gap-3">
+                            <div class="min-w-0 flex-1">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-sm font-bold text-slate-800 truncate">${escapeHtml(exp.title)}</span>
+                                    <span class="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-md shrink-0">${escapeHtml(exp.paidBy)} 先付</span>
+                                </div>
+                                <div class="text-[11px] text-slate-400 mt-0.5">
+                                    分攤人：${exp.splitWith.map(escapeHtml).join("、")}
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-3 shrink-0">
+                                <div class="text-right">
+                                    <div class="text-sm font-bold text-slate-800">
+                                        ${exp.currency === 'JPY' ? `¥${Number(exp.amount).toLocaleString()}` : `NT$ ${Number(exp.amount).toLocaleString()}`}
+                                    </div>
+                                    ${exp.currency === 'JPY' ? `<div class="text-[10px] text-amber-700 font-medium">≈ NT$ ${twdVal.toLocaleString()}</div>` : ''}
+                                </div>
+                                <button onclick="deleteExpenseRecord('${exp.id}')" class="w-7 h-7 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition">
+                                    <i class="fa-regular fa-trash-can text-xs"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }).join("");
+            }
+        }
+
+        function computeSimplifiedSettlements(netBalances) {
+            const debtors = [];
+            const creditors = [];
+
+            Object.entries(netBalances).forEach(([person, bal]) => {
+                if (bal < -1) debtors.push({ person, amount: -bal });
+                else if (bal > 1) creditors.push({ person, amount: bal });
+            });
+
+            debtors.sort((a, b) => b.amount - a.amount);
+            creditors.sort((a, b) => b.amount - a.amount);
+
+            const results = [];
+            let i = 0, j = 0;
+
+            while (i < debtors.length && j < creditors.length) {
+                const pay = Math.min(debtors[i].amount, creditors[j].amount);
+                if (pay > 1) {
+                    results.push({
+                        from: debtors[i].person,
+                        to: creditors[j].person,
+                        amountTWD: pay
+                    });
+                }
+                debtors[i].amount -= pay;
+                creditors[j].amount -= pay;
+
+                if (debtors[i].amount <= 1) i++;
+                if (creditors[j].amount <= 1) j++;
+            }
+            return results;
+        }
+
+        function openExpenseModal() {
+            document.getElementById("expTitleInput").value = "";
+            document.getElementById("expAmountInput").value = "";
+            document.getElementById("expCurrencyInput").value = "JPY";
+
+            const paidSelect = document.getElementById("expPaidBySelect");
+            paidSelect.innerHTML = appState.companions.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
+
+            const splitContainer = document.getElementById("expSplitWithContainer");
+            splitContainer.innerHTML = appState.companions.map(c => `
+                <label class="flex items-center gap-2 p-2 rounded-xl border border-slate-200 bg-slate-50 cursor-pointer">
+                    <input type="checkbox" name="expSplitPerson" value="${escapeHtml(c)}" checked class="rounded text-amber-600 focus:ring-0">
+                    <span class="text-xs font-semibold text-slate-700">${escapeHtml(c)}</span>
+                </label>
+            `).join("");
+
+            const modal = document.getElementById("expenseModal");
+            modal.classList.remove("hidden");
+            modal.classList.add("flex");
+        }
+
+        function closeExpenseModal() {
+            const modal = document.getElementById("expenseModal");
+            modal.classList.add("hidden");
+            modal.classList.remove("flex");
+        }
+
+        function toggleAllSplitCheckboxes() {
+            const boxes = document.querySelectorAll('input[name="expSplitPerson"]');
+            boxes.forEach(b => b.checked = true);
+        }
+
+        function saveExpenseRecord() {
+            const title = document.getElementById("expTitleInput").value.trim();
+            const amount = parseFloat(document.getElementById("expAmountInput").value);
+            const currency = document.getElementById("expCurrencyInput").value;
+            const paidBy = document.getElementById("expPaidBySelect").value;
+            const checkedBoxes = Array.from(document.querySelectorAll('input[name="expSplitPerson"]:checked'));
+            const splitWith = checkedBoxes.map(cb => cb.value);
+
+            if (!title || isNaN(amount) || amount <= 0) {
+                showToast("請填寫消費名稱與正確金額！");
+                return;
+            }
+            if (splitWith.length === 0) {
+                showToast("請至少勾選一位分攤旅伴！");
+                return;
+            }
+
+            appState.expenses.push({
+                id: "exp-" + Date.now(),
+                title,
+                amount,
+                currency,
+                paidBy,
+                splitWith
+            });
+
+            closeExpenseModal();
+            saveStateToLocal();
+            renderExpensesView();
+            showToast("已新增一筆分帳紀錄！");
+        }
+
+        function deleteExpenseRecord(expId) {
+            appState.expenses = appState.expenses.filter(e => e.id !== expId);
+            saveStateToLocal();
+            renderExpensesView();
+            showToast("已刪除該筆消費紀錄");
+        }
+
+        // Companions Modal
+        function openCompanionModal() {
+            renderCompanionModalList();
+            const modal = document.getElementById("companionModal");
+            modal.classList.remove("hidden");
+            modal.classList.add("flex");
+        }
+
+        function closeCompanionModal() {
+            const modal = document.getElementById("companionModal");
+            modal.classList.add("hidden");
+            modal.classList.remove("flex");
+            renderExpensesView();
+        }
+
+        function renderCompanionModalList() {
+            const listEl = document.getElementById("companionModalList");
+            listEl.innerHTML = appState.companions.map((name, idx) => `
+                <div class="flex items-center justify-between bg-slate-50 px-3 py-2 rounded-xl border border-slate-200/80 text-xs">
+                    <span class="font-bold text-slate-700">${escapeHtml(name)}</span>
+                    ${appState.companions.length > 1 ? `
+                        <button onclick="removeCompanion(${idx})" class="text-rose-500 hover:underline text-[11px]">移除</button>
+                    ` : `<span class="text-[10px] text-slate-400">預設成員</span>`}
+                </div>
+            `).join("");
+        }
+
+        function addCompanion() {
+            const input = document.getElementById("newCompanionInput");
+            const name = input.value.trim();
+            if (!name) return;
+            if (appState.companions.includes(name)) {
+                showToast("此旅伴名稱已存在！");
+                return;
+            }
+            appState.companions.push(name);
+            input.value = "";
+            saveStateToLocal();
+            renderCompanionModalList();
+            showToast(`已加入旅伴「${name}」`);
+        }
+
+        function removeCompanion(idx) {
+            if (appState.companions.length <= 1) return;
+            appState.companions.splice(idx, 1);
+            saveStateToLocal();
+            renderCompanionModalList();
+        }
+
+        // ============================================================================
+        // 6. TOOLS, NAGOYA MUST-EAT CHECKLIST & GITHUB JSON BACKUP / LINE SHARE
+        // ============================================================================
+        function renderToolsView() {
+            const foodGrid = document.getElementById("nagoyaFoodGrid");
+            const eatenCount = appState.nagoyaFoods.filter(f => f.eaten).length;
+            document.getElementById("foodProgressBadge").textContent = `${eatenCount} / ${appState.nagoyaFoods.length} 已達成`;
+
+            foodGrid.innerHTML = appState.nagoyaFoods.map(food => `
+                <div class="p-3 rounded-xl border ${food.eaten ? 'bg-amber-50/70 border-amber-300' : 'bg-slate-50 border-slate-200/80'} flex items-center justify-between gap-2 transition">
+                    <div class="flex items-center gap-2.5 min-w-0 cursor-pointer flex-1" onclick="toggleNagoyaFood('${food.id}')">
+                        <div class="w-5 h-5 rounded-lg border ${food.eaten ? 'bg-amber-500 border-amber-500 text-white' : 'border-slate-300 bg-white'} flex items-center justify-center text-xs shrink-0">
+                            ${food.eaten ? '<i class="fa-solid fa-check"></i>' : ''}
+                        </div>
+                        <div class="min-w-0">
+                            <div class="text-xs font-bold text-slate-800 truncate">${escapeHtml(food.name)}</div>
+                            <div class="text-[11px] text-slate-500 truncate">${escapeHtml(food.shop)}</div>
+                        </div>
+                    </div>
+                    <button onclick="quickAddFoodToItinerary('${food.id}')" title="加入當前天數行程" class="text-[11px] font-semibold text-amber-700 bg-white hover:bg-amber-100 border border-amber-200 px-2.5 py-1 rounded-lg shrink-0 transition">
+                        +排入行程
+                    </button>
+                </div>
+            `).join("");
+        }
+
+        function toggleNagoyaFood(foodId) {
+            const item = appState.nagoyaFoods.find(f => f.id === foodId);
+            if (item) {
+                item.eaten = !item.eaten;
+                saveStateToLocal();
+                renderToolsView();
+            }
+        }
+
+        function quickAddFoodToItinerary(foodId) {
+            const food = appState.nagoyaFoods.find(f => f.id === foodId);
+            if (!food) return;
+            const currentDay = appState.days[appState.selectedDayIndex];
+            currentDay.items.push({
+                id: "item-" + Date.now(),
+                time: "12:30",
+                category: "food",
+                title: `品嚐：${food.name}`,
+                location: food.shop,
+                notes: "從名古屋必吃名物清單加入",
+                completed: false
+            });
+            saveStateToLocal();
+            showToast(`已將「${food.name}」加入 ${currentDay.label}！`);
+        }
+
+        // Download complete standalone index.html with current appState baked in
+        function downloadStandaloneHTML() {
+            let fullHtml = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
+            const stateJson = JSON.stringify(appState, null, 4);
+            fullHtml = fullHtml.replace(
+                /\/\*__APP_STATE_START__\*\/[\s\S]*?\/\*__APP_STATE_END__\*\//,
+                `/*__APP_STATE_START__*/${stateJson}/*__APP_STATE_END__*/`
+            );
+            const blob = new Blob([fullHtml], { type: "text/html;charset=utf-8" });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = "index.html";
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            showToast("已下載 index.html！可直接上傳至 GitHub");
+        }
+
+        // Export JSON File (Ideal for GitHub Pages single-person management)
+        function exportDataAsJSON() {
+            const dataStr = JSON.stringify(appState, null, 2);
+            const blob = new Blob([dataStr], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `nagoya-trip-backup.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            showToast("已下載 .json 備份檔！");
+        }
+
+        // Import JSON File
+        function importDataFromJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const loaded = JSON.parse(e.target.result);
+                    if (loaded && Array.isArray(loaded.days)) {
+                        appState = loaded;
+                        saveStateToLocal();
+                        renderItineraryView();
+                        renderExpensesView();
+                        renderToolsView();
+                        showToast("成功載入備份資料！");
+                    } else {
+                        showToast("檔案格式不符，請選擇正確的備份檔");
+                    }
+                } catch (err) {
+                    showToast("讀取 JSON 檔案失敗");
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // Copy text to clipboard helper (Iframe & GitHub safe)
+        function copyTextToClipboard(text, successMsg) {
+            const textarea = document.createElement("textarea");
+            textarea.value = text;
+            textarea.style.position = "fixed";
+            textarea.style.opacity = "0";
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand("copy");
+                showToast(successMsg);
+            } catch (err) {
+                showToast("複製失敗，請手動選取複製");
+            }
+            document.body.removeChild(textarea);
+        }
+
+        function copyItineraryForLine() {
+            let lines = [`🏯 【${appState.tripTitle}】 (${appState.tripDateRange})\n`];
+            appState.days.forEach(d => {
+                lines.push(`📅 ${d.label}：${d.subtitle}`);
+                d.items.forEach(it => {
+                    lines.push(`  • ${it.time} ${it.title}${it.location ? ` (@${it.location})` : ''}`);
+                });
+                lines.push("");
+            });
+            copyTextToClipboard(lines.join("\n"), "已複製完整行程文字，可直接貼上至 LINE 群組！");
+        }
+
+        function copySettlementReport() {
+            let totalTWD = 0;
+            const netBalances = {};
+            appState.companions.forEach(c => netBalances[c] = 0);
+
+            appState.expenses.forEach(exp => {
+                const amountInTWD = exp.currency === "JPY" ? exp.amount * appState.exchangeRate : exp.amount;
+                totalTWD += amountInTWD;
+                const validSplitters = exp.splitWith.filter(p => appState.companions.includes(p));
+                const share = amountInTWD / (validSplitters.length || 1);
+                if (netBalances[exp.paidBy] !== undefined) netBalances[exp.paidBy] += amountInTWD;
+                validSplitters.forEach(p => { if (netBalances[p] !== undefined) netBalances[p] -= share; });
+            });
+
+            const settlements = computeSimplifiedSettlements(netBalances);
+            let lines = [
+                `💴 【${appState.tripTitle}・分帳結算單】`,
+                `匯率設定：1 JPY = ${appState.exchangeRate} TWD`,
+                `總支出：NT$ ${Math.round(totalTWD).toLocaleString()}`,
+                `-----------------`
+            ];
+            if (settlements.length === 0) {
+                lines.push("目前所有款項皆已結清！");
+            } else {
+                settlements.forEach(s => {
+                    lines.push(`👉 ${s.from} 應給 ${s.to}：NT$ ${Math.round(s.amountTWD).toLocaleString()}`);
+                });
+            }
+            copyTextToClipboard(lines.join("\n"), "已複製分帳結算結果，可貼上至 LINE！");
+        }
+
+        // Trip Title Modal
+        function openTitleModal() {
+            document.getElementById("tripTitleInput").value = appState.tripTitle;
+            document.getElementById("tripDateRangeInput").value = appState.tripDateRange;
+            const modal = document.getElementById("titleModal");
+            modal.classList.remove("hidden");
+            modal.classList.add("flex");
+        }
+
+        function closeTitleModal() {
+            const modal = document.getElementById("titleModal");
+            modal.classList.add("hidden");
+            modal.classList.remove("flex");
+        }
+
+        function saveTripTitle() {
+            const t = document.getElementById("tripTitleInput").value.trim();
+            const d = document.getElementById("tripDateRangeInput").value.trim();
+            if (t) appState.tripTitle = t;
+            if (d) appState.tripDateRange = d;
+            closeTitleModal();
+            saveStateToLocal();
+            renderItineraryView();
+            showToast("已更新旅遊標題！");
+        }
+
+        function escapeHtml(str) {
+            if (!str) return "";
+            return String(str)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;");
+        }
+
+        // Initialize App on Load
+        window.onload = function() {
+            loadStateFromLocal();
+            renderItineraryView();
+            fetchNagoyaWeather(false);
+        };
+    </script>
+</body>
+</html>
